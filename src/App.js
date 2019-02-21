@@ -1,11 +1,11 @@
 import React, { Component } from 'react';
-import FabricGroup from './components/FabricGroup';
+import FabricSerialization from './components/FabricSerialization';
 
 class App extends Component {
   render() {
     return (
      <div>
-       <FabricGroup></FabricGroup>
+       <FabricSerialization></FabricSerialization>
      </div>
     );
   }
