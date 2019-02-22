@@ -12,7 +12,7 @@ class FabricSerialization extends Component {
 
   canvasData = []
   canvas;
-  
+
   componentDidMount() {
     this.canvas = new fabric.Canvas('c');
 
@@ -70,10 +70,10 @@ class FabricSerialization extends Component {
     isRectMode = true;
     let rect, isDown, origX, origY;
 
-    this.canvas.on('mouse:down', function (o) {
+    this.canvas.on('mouse:down', (o) => {
       if (!isRectMode) return;
       isDown = true;
-      var pointer = this.canvas.getPointer(o.e);
+      const pointer = this.canvas.getPointer(o.e);
       origX = pointer.x;
       origY = pointer.y;
       rect = new fabric.Rect({
@@ -90,9 +90,9 @@ class FabricSerialization extends Component {
       this.canvas.add(rect);
     });
 
-    this.canvas.on('mouse:move', function (o) {
+    this.canvas.on('mouse:move', (o) => {
       if (!isDown || !isRectMode) return;
-      var pointer = this.canvas.getPointer(o.e);
+      const pointer = this.canvas.getPointer(o.e);
 
       if (origX > pointer.x) {
         rect.set({ left: Math.abs(pointer.x) });
@@ -106,7 +106,7 @@ class FabricSerialization extends Component {
       this.canvas.renderAll();
     });
 
-    this.canvas.on('mouse:up', function (o) {
+    this.canvas.on('mouse:up', (o) => {
       isDown = false;
       isRectMode = false;
       rect.setCoords();
@@ -120,7 +120,7 @@ class FabricSerialization extends Component {
     console.log("text");
     this.canvas.isDrawingMode = false;
     isRectMode = false;
-    var textObject = new fabric.IText('Type...', {
+    const textObject = new fabric.IText('Type...', {
       fontFamily: 'Comic Sans',
       fontSize: 30,
       left: Math.random() * 300,
@@ -141,9 +141,8 @@ class FabricSerialization extends Component {
 
     const dataArrLength = this.canvasData.length
     if (dataArrLength > 0) {
-        this.canvasData.pop()
-        this.canvas.loadFromJSON(this.canvasData[this.canvasData.length-1].canvasJSON)
-
+      this.canvasData.pop()
+      this.canvas.loadFromJSON(this.canvasData[this.canvasData.length - 1].canvasJSON)
     }
 
     // let dataArrLength = this.state.canvasData.length
@@ -171,7 +170,6 @@ class FabricSerialization extends Component {
     e.preventDefault();
     console.log("save");
     // this.updateModifications();
-
   }
 
   handleRemove = (e) => {
