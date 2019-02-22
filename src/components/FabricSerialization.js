@@ -1,18 +1,34 @@
 import React, { Component } from 'react'
 import { fabric } from 'fabric';
 
-var canvas
+
+var isRectMode = false;
+
 
 class FabricSerialization extends Component {
-  constructor(props) {
-    super(props);
-    this.myCanvas = React.createRef();
-  }
+  // state = {
+  //   canvasData: []
+  // }
 
+  canvasData = []
+  canvas;
+  
   componentDidMount() {
-    canvas = new fabric.Canvas('c');
+    this.canvas = new fabric.Canvas('c');
 
-    canvas.backgroundColor = 'red';
+    this.canvas.backgroundColor = 'yellow';
+
+    this.canvas.on(
+      "object:added", () => {
+        // console.log("added")
+        this.updateModifications('added');
+      })
+
+    this.canvas.on(
+      'object:modified', () => {
+        // console.log("modified")
+        this.updateModifications('obj modified');
+      })
 
     // canvas.loadFromJSON('{"objects":[{"type":"rect","version":"2.4.6","originX":"left","originY":"top","left":50,"top":50,"width":20,"height":20,"fill":"green","stroke":null,"strokeWidth":1,"strokeDashArray":null,"strokeLineCap":"butt","strokeDashOffset":0,"strokeLineJoin":"miter","strokeMiterLimit":4,"scaleX":1,"scaleY":1,"angle":0,"flipX":false,"flipY":false,"opacity":1,"shadow":null,"visible":true,"clipTo":null,"backgroundColor":"","fillRule":"nonzero","paintFirst":"fill","globalCompositeOperation":"source-over","transformMatrix":null,"skewX":0,"skewY":0,"rx":0,"ry":0},{"type":"circle","version":"2.4.6","originX":"left","originY":"top","left":100,"top":100,"width":100,"height":100,"fill":"red","stroke":null,"strokeWidth":1,"strokeDashArray":null,"strokeLineCap":"butt","strokeDashOffset":0,"strokeLineJoin":"miter","strokeMiterLimit":4,"scaleX":1,"scaleY":1,"angle":0,"flipX":false,"flipY":false,"opacity":1,"shadow":null,"visible":true,"clipTo":null,"backgroundColor":"","fillRule":"nonzero","paintFirst":"fill","globalCompositeOperation":"source-over","transformMatrix":null,"skewX":0,"skewY":0,"radius":50,"startAngle":0,"endAngle":6.283185307179586}]}')
 
@@ -43,21 +59,23 @@ class FabricSerialization extends Component {
   handlePencil = (e) => {
     e.preventDefault();
     console.log("pencil")
-    canvas.isDrawingMode = true;
+    isRectMode = false;
+    this.canvas.isDrawingMode = true;
   }
 
   handleBox = (e) => {
     e.preventDefault();
     console.log("box");
-    canvas.isDrawingMode = false;
-    var rect, isDown, origX, origY;
+    this.canvas.isDrawingMode = false;
+    isRectMode = true;
+    let rect, isDown, origX, origY;
 
-    canvas.on('mouse:down', function (o) {
+    this.canvas.on('mouse:down', function (o) {
+      if (!isRectMode) return;
       isDown = true;
-      var pointer = canvas.getPointer(o.e);
+      var pointer = this.canvas.getPointer(o.e);
       origX = pointer.x;
       origY = pointer.y;
-      var pointer = canvas.getPointer(o.e);
       rect = new fabric.Rect({
         left: origX,
         top: origY,
@@ -66,15 +84,15 @@ class FabricSerialization extends Component {
         width: pointer.x - origX,
         height: pointer.y - origY,
         angle: 0,
-        fill: 'rgba(35,110,150,0.2)',
+        fill: 'rgba(243, 135, 50, 0.6)',
         transparentCorners: false
       });
-      canvas.add(rect);
+      this.canvas.add(rect);
     });
 
-    canvas.on('mouse:move', function (o) {
-      if (!isDown) return;
-      var pointer = canvas.getPointer(o.e);
+    this.canvas.on('mouse:move', function (o) {
+      if (!isDown || !isRectMode) return;
+      var pointer = this.canvas.getPointer(o.e);
 
       if (origX > pointer.x) {
         rect.set({ left: Math.abs(pointer.x) });
@@ -85,29 +103,31 @@ class FabricSerialization extends Component {
 
       rect.set({ width: Math.abs(origX - pointer.x) });
       rect.set({ height: Math.abs(origY - pointer.y) });
-
-
-      canvas.renderAll();
+      this.canvas.renderAll();
     });
 
-    canvas.on('mouse:up', function (o) {
+    this.canvas.on('mouse:up', function (o) {
       isDown = false;
+      isRectMode = false;
+      rect.setCoords();
+      //turn off event listener else will get duplicate rect
+      this.canvas.off('mouse:down').off('mouse:move').off('mouse:up')
     });
-
   }
 
   handleText = (e) => {
     e.preventDefault();
     console.log("text");
-    canvas.isDrawingMode = false;
+    this.canvas.isDrawingMode = false;
+    isRectMode = false;
     var textObject = new fabric.IText('Type...', {
       fontFamily: 'Comic Sans',
-      fontSize: 40,
-      left: 100,
-      top: Math.random() * 1000,
-      fill: localStorage.getItem('fillColor') || '#00000',
+      fontSize: 30,
+      left: Math.random() * 300,
+      top: Math.random() * 500,
+      fill: '#00000',
     })
-    canvas.add(textObject)
+    this.canvas.add(textObject)
   }
 
   handleColor = (e) => {
@@ -118,6 +138,22 @@ class FabricSerialization extends Component {
   handleUndo = (e) => {
     e.preventDefault();
     console.log("undo")
+
+    const dataArrLength = this.canvasData.length
+    if (dataArrLength > 0) {
+        this.canvasData.pop()
+        this.canvas.loadFromJSON(this.canvasData[this.canvasData.length-1].canvasJSON)
+
+    }
+
+    // let dataArrLength = this.state.canvasData.length
+    // if (mods < dataArrLength) {
+    //   canvas.clear().renderAll();
+    //   // canvas.loadFromJSON(this.state.canvasData[(dataArrLength - 1) - (mods + 1)]);
+    //   canvas.loadFromJSON(this.canvasData.slice(0, this.canvasData.length - 1))
+    //   canvas.renderAll();
+    //   mods += 1;
+    // }
   }
 
   handleRedo = (e) => {
@@ -128,28 +164,37 @@ class FabricSerialization extends Component {
   handleClear = (e) => {
     e.preventDefault();
     console.log("clear")
-    // const canvas = new fabric.Canvas('c');
-    // canvas.isDrawingMode = false;
-    canvas.remove(...canvas.getObjects());
-    // const activeObject = canvas.getActiveObject();
-    // const activeGroup = canvas.getActiveGroup();
-    // if (activeObject) {
-    //   canvas.remove(activeObject);
-    // }
-    // else if (activeGroup) {
-    //   var objectsInGroup = activeGroup.getObjects();
-    //   canvas.discardActiveGroup();
-    //   objectsInGroup.forEach(function(object) {
-    //   canvas.remove(object);
-    //   });
-    // }
+    this.canvas.remove(...this.canvas.getObjects());
   }
 
   handleSave = (e) => {
     e.preventDefault();
     console.log("save");
+    // this.updateModifications();
 
-    console.log(canvas.getActiveObjects());
+  }
+
+  handleRemove = (e) => {
+    e.preventDefault();
+    this.canvas.getActiveObjects().forEach((obj) => {
+      this.canvas.remove(obj)
+    });
+    this.canvas.discardActiveObject().renderAll();
+  }
+
+  updateModifications(type) {
+    const myJSON = {
+      type,
+      canvasJSON: JSON.stringify(this.canvas)
+    }
+
+    this.canvasData = [...this.canvasData, myJSON]
+
+    // this.setState({
+    //   canvasData: [...this.state.canvasData, myJSON]
+    // })
+    // console.log(myJSON);
+    console.log(this.canvasData);
   }
 
   render() {
@@ -187,13 +232,17 @@ class FabricSerialization extends Component {
             <i className="redo icon"></i>
             Redo
           </a>
-          <a className="item" href="/" onClick={(e) => this.handleClear(e)}>
-            <i className="window close outline icon"></i>
-            Clear
+          <a className="item" href="/" onClick={(e) => this.handleRemove(e)}>
+            <i className="trash alternate icon"></i>
+            Remove
           </a>
           <a className="item" href="/" onClick={(e) => this.handleSave(e)}>
             <i className="save outline icon"></i>
             Save
+          </a>
+          <a className="item" href="/" onClick={(e) => this.handleClear(e)}>
+            <i className="sync icon"></i>
+            Reset
           </a>
         </div>
       </div>
